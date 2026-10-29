@@ -46,11 +46,12 @@ async function dragCard(page, from, to, { hold = 0 } = {}) {
   await page.mouse.move(target.x, target.y, { steps: 25 });
   for (let t = 0; t < hold; t += 100) { await page.mouse.move(target.x + (t % 200 ? 1 : 0), target.y); await page.waitForTimeout(100); }
   return async finalPoint => {
-    if (finalPoint) {
-      const p = typeof finalPoint === 'function' ? await finalPoint() : finalPoint;
-      await page.mouse.move(p.x, p.y, { steps: 15 });
-      await page.waitForTimeout(300);
-    }
+    const p = finalPoint ? (typeof finalPoint === 'function' ? await finalPoint() : finalPoint) : target;
+    if (finalPoint) await page.mouse.move(p.x, p.y, { steps: 15 });
+    // como uma pessoa: para um instante sobre o destino antes de soltar
+    await page.waitForTimeout(250);
+    await page.mouse.move(p.x + 1, p.y + 1);
+    await page.waitForTimeout(400);
     await page.mouse.up();
     await page.waitForTimeout(300);
   };
