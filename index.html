@@ -6,8 +6,11 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#FAF7F2">
 <title>Pastinha — monte dossiês em PDF</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23E8572A'/%3E%3Cpath d='M14 22a4 4 0 0 1 4-4h9l5 5h14a4 4 0 0 1 4 4v15a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
 <meta name="description" content="Junte PDFs e fotos, organize arrastando e baixe em PDF ou imagens. Tudo no seu navegador.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Pastinha">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -225,6 +228,30 @@
   .toast button { background: rgba(255,255,255,.18); border: 0; color: #fff; border-radius: 8px; padding: 4px 10px; font-weight: 800; font-size: 13px; }
   @keyframes tin { from { opacity: 0; transform: translateY(-6px); } }
 
+  .install { margin-left: 10px; height: 36px; border-radius: 99px; font-size: 13px; }
+
+  /* Visualização em tela cheia */
+  .viewer { position: fixed; inset: 0; z-index: 65; background: rgba(28,25,23,.96); display: flex; flex-direction: column; color: #fff; }
+  .vw-top { display: flex; align-items: center; gap: 10px; padding: 10px 16px; flex-wrap: wrap; }
+  .vw-num { font-weight: 800; font-size: 16px; white-space: nowrap; }
+  .vw-name { color: #D6D3D1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+  .vw-top .tb { color: #fff; background: rgba(255,255,255,.08); }
+  .vw-top .tb:hover { background: rgba(255,255,255,.16); }
+  .vw-top .tb.danger:hover { background: var(--danger); }
+  .vw-top .tb.go { background: var(--accent); }
+  .vw-top .tb.go:hover { background: var(--accent-dark); }
+  .vw-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; padding: 8px 76px 20px; }
+  .vw-stage img { max-width: 100%; max-height: 100%; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  .vw-stage .spinner { position: absolute; }
+  .vw-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; display: grid; place-items: center; }
+  .vw-nav:hover { background: rgba(255,255,255,.24); }
+  .vw-nav:disabled { opacity: .25; cursor: default; }
+  .vw-nav svg { width: 26px; height: 26px; }
+  .vw-nav.prev { left: 14px; }
+  .vw-nav.next { right: 14px; }
+  .vw-hint { text-align: center; color: #A8A29E; font-size: 12px; padding: 0 0 12px; }
+  @media (max-width: 960px) { .vw-stage { padding: 8px 12px 20px; } .vw-nav { top: auto; bottom: 18px; transform: none; } .vw-hint { display: none; } }
+
   /* Editor de página */
   .editor { position: fixed; inset: 0; z-index: 70; background: var(--dark-2); display: flex; flex-direction: column; color: #fff; }
   .ed-top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--dark); flex-wrap: wrap; }
@@ -269,6 +296,8 @@
     .drop { min-height: 380px; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
     .tb span { display: none; }
+    /* altura mínima: a página quase não "pula" ao trocar de ferramenta, e nada fica cortado */
+    .ed-opts { min-height: 96px; align-content: center; gap: 8px 14px; }
   }
 </style>
 </head>
@@ -283,6 +312,9 @@
     <svg class="i" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     <span>Seus arquivos não saem do seu computador</span>
   </div>
+  <button class="btn primary install" id="installBtn" hidden title="Instala a Pastinha como um programa no computador ou celular">
+    <svg class="i" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Instalar app
+  </button>
 </header>
 
 <div class="app">
@@ -297,6 +329,7 @@
       </div>
       <span class="count" id="count"></span>
       <span class="spacer"></span>
+      <button class="btn" id="viewBtn" title="Ver as páginas em tela cheia (Espaço)"><svg class="i" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Conferir</button>
       <button class="btn icon" id="undoBtn" title="Desfazer (Ctrl+Z)"><svg class="i" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
       <button class="btn icon" id="redoBtn" title="Refazer (Ctrl+Y)"><svg class="i" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
       <button class="btn" id="clearBtn"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar tudo</button>
@@ -361,6 +394,7 @@
       <b>Atalhos</b><br>
       Clique para selecionar · <kbd>Shift</kbd>+clique seleciona vários<br>
       Duplo clique abre o editor da página<br>
+      <kbd>Espaço</kbd> confere em tela cheia<br>
       <kbd>Del</kbd> exclui · <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz · <kbd>Ctrl</kbd>+<kbd>A</kbd> seleciona tudo<br>
       <kbd>Ctrl</kbd>+<kbd>V</kbd> cola um print ou foto
     </div>
@@ -386,6 +420,26 @@
   <button data-bulk="clear" title="Limpar seleção"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
 </div>
 
+<!-- Visualização em tela cheia -->
+<div class="viewer" id="viewer" hidden>
+  <div class="vw-top">
+    <span class="vw-num" id="vwNum"></span>
+    <span class="vw-name" id="vwName"></span>
+    <button class="tb" id="vwRotL" title="Girar à esquerda"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+    <button class="tb" id="vwRotR" title="Girar à direita"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+    <button class="tb danger" id="vwDel" title="Excluir esta página"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg><span>Excluir</span></button>
+    <button class="tb go" id="vwEdit"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Editar</span></button>
+    <button class="tb" id="vwClose" title="Fechar (Esc)"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Fechar</span></button>
+  </div>
+  <div class="vw-stage" id="vwStage">
+    <button class="vw-nav prev" id="vwPrev" title="Anterior (←)"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+    <div class="spinner" id="vwSpin"></div>
+    <img id="vwImg" alt="">
+    <button class="vw-nav next" id="vwNext" title="Próxima (→)"><svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+  </div>
+  <div class="vw-hint">← → para passar as páginas · Esc para fechar</div>
+</div>
+
 <!-- Editor de uma página -->
 <div class="editor" id="editor" hidden>
   <div class="ed-top">
@@ -395,7 +449,8 @@
       <button class="tb" data-tool="text"><svg class="i" viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg><span>Texto</span></button>
       <button class="tb" data-tool="pen"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Caneta</span></button>
       <button class="tb" data-tool="hl"><svg class="i" viewBox="0 0 24 24"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg><span>Marca-texto</span></button>
-      <button class="tb" data-tool="rect"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="1" fill="currentColor"/></svg><span>Tarja / Apagar</span></button>
+      <button class="tb" data-tool="rect"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="1" fill="currentColor"/></svg><span>Tarja</span></button>
+      <button class="tb" data-tool="erase" title="Apaga o que você desenhou ou escreveu, sem mexer no documento"><svg class="i" viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg><span>Borracha</span></button>
       <button class="tb" data-tool="adjust"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Ajustar imagem</span></button>
       <span class="ed-sep"></span>
       <button class="tb" id="edRotL" title="Girar à esquerda"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
@@ -409,10 +464,12 @@
     </div>
   </div>
   <div class="ed-opts" id="edOpts">
-    <div class="grp" data-for="none">Escolha uma ferramenta acima. Dica: <b>Tarja / Apagar</b> na cor branca cobre o que você não quer que apareça.</div>
-    <div class="grp" data-for="text pen hl rect">
-      <span id="swatches" class="grp"></span>
-      <label data-for-size>Tamanho <input type="range" id="edSize" min="1" max="60"></label>
+    <div class="grp" data-for="none">Escolha uma ferramenta acima. Dica: a <b>Tarja</b> branca cobre o que não pode aparecer; a <b>Borracha</b> apaga o que você desenhou.</div>
+    <div class="grp" data-for="text pen hl rect"><span id="swatches" class="grp"></span></div>
+    <div class="grp" data-for="text pen hl erase"><label>Tamanho <input type="range" id="edSize" min="1" max="60"></label></div>
+    <div class="grp" data-for="erase">
+      <span>Passe por cima do que você desenhou ou escreveu. O documento original não é apagado.</span>
+      <button class="mini" id="clearDrawings">Apagar tudo o que desenhei</button>
     </div>
     <div class="grp" data-for="text"><span>Clique na página onde quer escrever · <b>Enter</b> confirma</span></div>
     <div class="grp" data-for="crop">
@@ -439,15 +496,15 @@
 <div class="toasts" id="toasts"></div>
 <input type="file" id="fileInput" multiple accept="application/pdf,.pdf,image/*" hidden>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/Sortable.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
 <script>
 (() => {
   'use strict';
   const { PDFDocument, degrees } = PDFLib;
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
 
   // ---------- Configuração ----------
   const A4 = { w: 595.28, h: 841.89 };
@@ -601,12 +658,11 @@
       busy(files.length > 1 ? `Lendo ${i + 1} de ${files.length}: ${f.name}` : `Lendo ${f.name}…`, files.length > 1 ? i / files.length : null);
       try {
         if (isPdf(f)) await addPdf(f);
-        else if (isHeic(f)) await addImage(f).catch(() => { throw new Error('heic'); });
         else if (isImage(f)) await addImage(f);
         else toast(`"${f.name}" não é PDF nem imagem — ignorado.`, 'error');
       } catch (e) {
         console.error(e);
-        if (e.message === 'heic') toast(`"${f.name}" é HEIC (foto de iPhone) e o navegador não abre. No iPhone: Ajustes › Câmera › Formatos › "Mais Compatível", ou envie como JPG.`, 'error');
+        if (e.message === 'heic') toast(`Não consegui converter "${f.name}" (foto de iPhone). Tente enviar a foto como JPG.`, 'error');
         else if (e.message !== 'cancel') toast(`Não consegui abrir "${f.name}". O arquivo pode estar corrompido.`, 'error');
       }
     }
@@ -652,8 +708,30 @@
     }
   }
 
+  // Fotos HEIC (iPhone): Chrome e Edge não abrem; convertemos para JPG no próprio navegador.
+  // A biblioteca é grande (1,3 MB), então só é carregada quando aparece a primeira foto HEIC.
+  function loadScript(src) {
+    return new Promise((res, rej) => {
+      const el = document.createElement('script');
+      el.src = src; el.onload = res; el.onerror = () => rej(new Error('Falha ao carregar ' + src));
+      document.head.appendChild(el);
+    });
+  }
+  async function heicToJpeg(f) {
+    if (!window.heic2any) await loadScript('vendor/heic2any.min.js');
+    const out = await heic2any({ blob: f, toType: 'image/jpeg', quality: 0.95 });
+    return Array.isArray(out) ? out[0] : out;
+  }
+
   async function addImage(f) {
-    const bmp = await decodeImage(f);
+    let bmp;
+    try { bmp = await decodeImage(f); }
+    catch (e) {
+      if (!isHeic(f)) throw e;
+      busy(`Convertendo foto do iPhone: ${f.name}…`);
+      try { bmp = await decodeImage(await heicToJpeg(f)); }
+      catch (err) { console.error(err); throw new Error('heic'); }
+    }
     const s = Math.min(1, IMPORT_MAX_SIDE / Math.max(bmp.width, bmp.height));
     const c = mkCanvas(bmp.width * s, bmp.height * s);
     whiteCtx(c).drawImage(bmp, 0, 0, c.width, c.height);
@@ -733,6 +811,7 @@
     else if (action === 'dup') duplicatePages(set);
     else if (action === 'del') deletePages(set);
     else if (action === 'edit') openEditor(ids[0]);
+    else if (action === 'view') openViewer(ids[0]);
     else if (action === 'first' || action === 'last') movePages(set, action);
   }
 
@@ -762,7 +841,7 @@
         <button class="act" data-act="rotL" title="Girar à esquerda">${ICON.rotL}</button>
         <button class="act" data-act="rotR" title="Girar à direita">${ICON.rotR}</button>
         <button class="act" data-act="edit" title="Editar esta página">${ICON.edit}</button>
-        <button class="act" data-act="dup" title="Duplicar">${ICON.dup}</button>
+        <button class="act" data-act="view" title="Ver em tela cheia">${ICON.eye}</button>
         <button class="act del" data-act="del" title="Excluir">${ICON.del}</button>
       </div></div>
       <div class="meta"><span class="dot"></span><span class="num"></span><span class="mtext"><span class="fname"></span><span class="pinfo"></span></span></div>`;
@@ -870,7 +949,7 @@
   }
   function updateSelbar() {
     const n = selected.size;
-    $('#selbar').hidden = !n || view !== 'pages' || !$('#editor').hidden;
+    $('#selbar').hidden = !n || view !== 'pages' || !$('#editor').hidden || !$('#viewer').hidden;
     $('#selCount').textContent = plural(n, 'selecionada', 'selecionadas');
   }
 
@@ -1220,6 +1299,7 @@
 
   window.addEventListener('keydown', e => {
     if (!$('#editor').hidden) return editorKey(e);
+    if (!$('#viewer').hidden) return viewerKey(e);
     if (e.target.matches('input, textarea')) return;
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
@@ -1227,6 +1307,7 @@
     else if (mod && e.key.toLowerCase() === 'a' && pages.length) { e.preventDefault(); selected = new Set(pages.map(p => p.id)); updateSelection(); }
     else if ((e.key === 'Delete' || e.key === 'Backspace') && selected.size) { e.preventDefault(); deletePages(new Set(selected)); }
     else if (e.key === 'Escape' && selected.size) { selected.clear(); updateSelection(); }
+    else if (e.key === ' ' && pages.length && !e.target.closest('button')) { e.preventDefault(); openViewer(lastClicked && pages.some(p => p.id === lastClicked) ? lastClicked : pages[0].id); }
   });
 
   // ---------- Editor de página ----------
@@ -1234,7 +1315,7 @@
   const ed = { open: false };
   const cv = $('#edCanvas');
   const edDefaults = () => ({
-    sizes: { text: 14, pen: 2, hl: 14, rect: 0 },
+    sizes: { text: 14, pen: 2, hl: 14, rect: 0, erase: 18 },
     colors: { text: '#111111', pen: '#1D4ED8', hl: '#FACC15', rect: '#FFFFFF' },
   });
   Object.assign(ed, edDefaults());
@@ -1287,14 +1368,14 @@
     if (t !== 'crop') ed.crop = null;
     document.querySelectorAll('.tb[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
     document.querySelectorAll('#edOpts [data-for]').forEach(g => { g.hidden = !g.dataset.for.split(' ').includes(t); });
-    document.querySelector('[data-for-size]').hidden = t === 'rect';
     if (ed.sizes[t] != null) {
       const sz = $('#edSize');
-      sz.min = t === 'pen' ? 1 : 6; sz.max = t === 'pen' ? 12 : 48;
+      sz.min = t === 'pen' ? 1 : 6; sz.max = t === 'pen' ? 12 : t === 'erase' ? 60 : 48;
       sz.value = ed.sizes[t];
     }
     renderSwatches();
-    cv.style.cursor = t === 'none' || t === 'adjust' ? 'default' : t === 'text' ? 'text' : 'crosshair';
+    cv.style.cursor = t === 'none' || t === 'adjust' ? 'default' : t === 'text' ? 'text' : t === 'erase' ? 'none' : 'crosshair';
+    ed.hover = null;
     $('#cropApply').disabled = true;
     redraw();
   }
@@ -1319,10 +1400,11 @@
 
   function drawAnnot(x, a) {
     x.save();
-    if (a.type === 'pen' || a.type === 'hl') {
+    if (a.type === 'pen' || a.type === 'hl' || a.type === 'erase') {
       x.lineCap = x.lineJoin = 'round';
-      x.strokeStyle = a.color; x.lineWidth = a.width;
-      if (a.type === 'hl') { x.globalCompositeOperation = 'multiply'; x.globalAlpha = 0.85; x.lineCap = 'square'; }
+      x.strokeStyle = a.color || '#000'; x.lineWidth = a.width;
+      if (a.type === 'hl') x.lineCap = 'square';
+      if (a.type === 'erase') x.globalCompositeOperation = 'destination-out';
       x.beginPath();
       x.moveTo(a.pts[0].x, a.pts[0].y);
       if (a.pts.length === 1) x.lineTo(a.pts[0].x + 0.1, a.pts[0].y);
@@ -1335,9 +1417,40 @@
       x.fillStyle = a.color;
       x.font = `${a.size}px Helvetica, Arial, sans-serif`;
       x.textBaseline = 'top';
-      x.fillText(a.text, a.x, a.y);
+      x.translate(a.x, a.y);
+      if (a.rot) x.rotate(a.rot * Math.PI / 180);
+      x.fillText(a.text, 0, 0);
     }
     x.restore();
+  }
+
+  // As anotações ficam em camadas transparentes por cima da página. Assim a borracha
+  // (destination-out) apaga só o que foi desenhado e o documento por baixo aparece intacto.
+  // O marca-texto tem camada própria, aplicada em "multiply" para o texto continuar visível.
+  let layerHl = null, layerMain = null;
+  function drawAnnotations(x, list) {
+    if (!list.length) return;
+    const W = x.canvas.width, H = x.canvas.height;
+    if (!layerHl || layerHl.width !== W || layerHl.height !== H) { layerHl = mkCanvas(W, H); layerMain = mkCanvas(W, H); }
+    const hx = layerHl.getContext('2d'), mx = layerMain.getContext('2d');
+    hx.clearRect(0, 0, W, H); mx.clearRect(0, 0, W, H);
+    let hasHl = false;
+    for (const a of list) {
+      if (a.type === 'erase') { drawAnnot(hx, a); drawAnnot(mx, a); }
+      else if (a.type === 'hl') { hasHl = true; drawAnnot(hx, a); }
+      else drawAnnot(mx, a);
+    }
+    if (hasHl) { x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = 0.85; x.drawImage(layerHl, 0, 0); x.restore(); }
+    x.drawImage(layerMain, 0, 0);
+  }
+  // Move as anotações junto com a página ao girar ou recortar (assim continuam apagáveis)
+  function mapAnnots(list, f, rot = 0) {
+    return list.map(a => {
+      if (a.pts) return { ...a, pts: a.pts.map(f) };
+      if (a.type === 'rect') { const p0 = f({ x: a.x0, y: a.y0 }), p1 = f({ x: a.x1, y: a.y1 }); return { ...a, x0: p0.x, y0: p0.y, x1: p1.x, y1: p1.y }; }
+      if (a.type === 'text') { const q = f({ x: a.x, y: a.y }); return { ...a, x: q.x, y: q.y, rot: norm((a.rot || 0) + rot) }; }
+      return a;
+    });
   }
   function normRect(r) {
     const W = ed.base.width, H = ed.base.height;
@@ -1357,8 +1470,16 @@
       if (!ed.open) return;
       const x = cv.getContext('2d');
       x.drawImage(ed.base, 0, 0);
-      ed.annots.forEach(a => drawAnnot(x, a));
-      if (ed.drawing) drawAnnot(x, ed.drawing);
+      drawAnnotations(x, ed.drawing ? [...ed.annots, ed.drawing] : ed.annots);
+      if (ed.tool === 'erase' && ed.hover) {
+        // círculo mostrando o tamanho da borracha
+        const u = unitPt();
+        x.save();
+        x.beginPath(); x.arc(ed.hover.x, ed.hover.y, ed.sizes.erase * u / 2, 0, Math.PI * 2);
+        x.lineWidth = 1.5 * u; x.strokeStyle = '#fff'; x.stroke();
+        x.lineWidth = 0.8 * u; x.strokeStyle = '#E8572A'; x.stroke();
+        x.restore();
+      }
       if (ed.crop) {
         const r = normRect(ed.crop), u = unitPt();
         x.save();
@@ -1375,7 +1496,7 @@
     const c = mkCanvas(ed.base.width, ed.base.height);
     const x = c.getContext('2d');
     x.drawImage(ed.base, 0, 0);
-    ed.annots.forEach(a => drawAnnot(x, a));
+    drawAnnotations(x, ed.annots);
     return c;
   }
   function edPush() {
@@ -1392,13 +1513,14 @@
   function edRotate(dir) {
     hideTextInput(true);
     edPush();
-    const f = flatten();
-    const c = mkCanvas(f.height, f.width);
+    const b = ed.base, W = b.width, H = b.height;
+    const c = mkCanvas(H, W);
     const x = c.getContext('2d');
     x.translate(c.width / 2, c.height / 2);
     x.rotate(dir * Math.PI / 2);
-    x.drawImage(f, -f.width / 2, -f.height / 2);
-    ed.base = c; ed.annots = []; ed.crop = null;
+    x.drawImage(b, -W / 2, -H / 2);
+    ed.annots = mapAnnots(ed.annots, dir > 0 ? q => ({ x: H - q.y, y: q.x }) : q => ({ x: q.y, y: W - q.x }), dir * 90);
+    ed.base = c; ed.crop = null;
     redraw();
   }
 
@@ -1415,7 +1537,7 @@
       startText(pos);
       return;
     }
-    if (t === 'pen' || t === 'hl') {
+    if (t === 'pen' || t === 'hl' || t === 'erase') {
       ed.drawing = { type: t, pts: [pos], color: ed.colors[t], width: ed.sizes[t] * unitPt() };
     } else if (t === 'rect') {
       ed.drawing = { type: 'rect', x0: pos.x, y0: pos.y, x1: pos.x, y1: pos.y, color: ed.colors.rect };
@@ -1428,7 +1550,9 @@
     redraw();
   });
   cv.addEventListener('pointermove', e => {
-    if (!ed.open || (!ed.drawing && !ed.cropping)) return;
+    if (!ed.open) return;
+    if (ed.tool === 'erase') { ed.hover = getPos(e); if (!ed.drawing) { redraw(); return; } }
+    if (!ed.drawing && !ed.cropping) return;
     const pos = getPos(e);
     if (ed.drawing && ed.drawing.pts) ed.drawing.pts.push(pos);
     else if (ed.drawing) { ed.drawing.x1 = pos.x; ed.drawing.y1 = pos.y; }
@@ -1440,7 +1564,8 @@
       const d = ed.drawing;
       ed.drawing = null;
       const ok = d.pts ? true : (() => { const r = normRect(d); return r.w > 3 && r.h > 3; })();
-      if (ok) { edPush(); ed.annots.push(d); }
+      // passar a borracha onde não há nada desenhado não vira um passo no Desfazer
+      if (ok && !(d.type === 'erase' && !ed.annots.length)) { edPush(); ed.annots.push(d); }
       redraw();
     }
     if (ed.cropping) {
@@ -1450,17 +1575,27 @@
     }
   }
   cv.addEventListener('pointerup', endPointer);
+  cv.addEventListener('pointerleave', () => { if (ed.hover) { ed.hover = null; redraw(); } });
   cv.addEventListener('pointercancel', endPointer);
+
+  $('#clearDrawings').onclick = () => {
+    if (!ed.annots.length) { toast('Não há nada desenhado nesta página.'); return; }
+    hideTextInput(false);
+    edPush();
+    ed.annots = [];
+    redraw();
+    toast('Desenhos e textos apagados', 'ok', { label: 'Desfazer', fn: edUndo });
+  };
 
   $('#cropApply').onclick = () => {
     if (!ed.crop) return;
     const r = normRect(ed.crop);
     if (r.w < 12 || r.h < 12) return;
     edPush();
-    const f = flatten();
     const c = mkCanvas(r.w, r.h);
-    c.getContext('2d').drawImage(f, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
-    ed.base = c; ed.annots = []; ed.crop = null;
+    c.getContext('2d').drawImage(ed.base, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+    ed.annots = mapAnnots(ed.annots, q => ({ x: q.x - r.x, y: q.y - r.y }));
+    ed.base = c; ed.crop = null;
     $('#cropApply').disabled = true;
     redraw();
   };
@@ -1588,6 +1723,134 @@
     else if (e.key === 'Enter' && ed.tool === 'crop' && !$('#cropApply').disabled) $('#cropApply').click();
   }
   window.addEventListener('resize', () => { if (!txt.hidden) positionTextInput(); });
+
+  // ---------- Visualização em tela cheia ----------
+  const vw = { id: null, token: 0 };
+  const vwCache = new Map(); // chave da aparência da página -> objectURL (guarda poucas)
+  const vwKey = p => `${p.thumbKey}|${p.rotation}|${p.kind === 'image' && !p.pageSize ? imageLayout : ''}`;
+
+  async function vwUrl(p) {
+    const key = vwKey(p);
+    if (vwCache.has(key)) return vwCache.get(key);
+    const c = await renderPageCanvas(p, 1800);
+    const url = URL.createObjectURL(await toBlob(c, 'image/jpeg', 0.9));
+    c.width = c.height = 0;
+    vwCache.set(key, url);
+    if (vwCache.size > 8) {
+      const [oldKey, oldUrl] = vwCache.entries().next().value;
+      URL.revokeObjectURL(oldUrl); vwCache.delete(oldKey);
+    }
+    return url;
+  }
+  function openViewer(id) {
+    if (!pages.length) return;
+    $('#viewer').hidden = false;
+    document.body.classList.add('noscroll');
+    updateSelbar();
+    showInViewer(id);
+  }
+  function closeViewer() {
+    $('#viewer').hidden = true;
+    document.body.classList.remove('noscroll');
+    updateSelbar();
+    const el = cardEls.get(vw.id);
+    if (el && view === 'pages') el.scrollIntoView({ block: 'nearest' });
+  }
+  async function showInViewer(id) {
+    let i = pages.findIndex(p => p.id === id);
+    if (i < 0) i = Math.min(pages.length - 1, Math.max(0, pages.findIndex(p => p.id === vw.id)));
+    if (i < 0) { closeViewer(); return; }
+    const p = pages[i], doc = docs.get(p.docId), token = ++vw.token;
+    vw.id = p.id;
+    $('#vwNum').textContent = `Página ${i + 1} de ${pages.length}`;
+    $('#vwName').textContent = doc.name + (doc.kind === 'pdf' && doc.pdfjs.numPages > 1 ? ` · pág. ${p.pageIndex + 1} de ${doc.pdfjs.numPages}` : '');
+    $('#vwPrev').disabled = i === 0;
+    $('#vwNext').disabled = i === pages.length - 1;
+    const img = $('#vwImg');
+    const ready = vwCache.get(vwKey(p));
+    if (ready) { img.src = ready; img.hidden = false; $('#vwSpin').hidden = true; }
+    else {
+      // mostra a miniatura enquanto a versão grande fica pronta
+      const t = thumbs.get(p.thumbKey);
+      img.hidden = !t; if (t) { img.src = t; img.style.transform = p.rotation ? `rotate(${p.rotation}deg)` : ''; }
+      $('#vwSpin').hidden = false;
+      try {
+        const url = await vwUrl(p);
+        if (token !== vw.token) return;
+        img.src = url; img.hidden = false;
+      } catch (e) { console.error(e); }
+      if (token === vw.token) $('#vwSpin').hidden = true;
+    }
+    img.style.transform = '';
+    // prepara a próxima página para passar sem espera
+    const next = pages[i + 1];
+    if (next) vwUrl(next).catch(() => {});
+  }
+  function vwStep(d) {
+    const i = pages.findIndex(p => p.id === vw.id) + d;
+    if (i >= 0 && i < pages.length) showInViewer(pages[i].id);
+  }
+  function viewerKey(e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); vwStep(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); vwStep(-1); }
+    else if (e.key === 'Escape' || e.key === ' ') { e.preventDefault(); closeViewer(); }
+    else if (e.key === 'Delete') { e.preventDefault(); $('#vwDel').click(); }
+  }
+  $('#vwPrev').onclick = () => vwStep(-1);
+  $('#vwNext').onclick = () => vwStep(1);
+  $('#vwClose').onclick = closeViewer;
+  $('#vwStage').addEventListener('click', e => { if (e.target === $('#vwStage')) closeViewer(); });
+  $('#vwRotL').onclick = () => { rotatePages(new Set([vw.id]), -90); showInViewer(vw.id); };
+  $('#vwRotR').onclick = () => { rotatePages(new Set([vw.id]), 90); showInViewer(vw.id); };
+  $('#vwDel').onclick = () => {
+    const i = pages.findIndex(p => p.id === vw.id);
+    deletePages(new Set([vw.id]));
+    if (!pages.length) { closeViewer(); return; }
+    showInViewer(pages[Math.min(i, pages.length - 1)].id);
+  };
+  $('#vwEdit').onclick = () => { const id = vw.id; closeViewer(); openEditor(id); };
+  $('#viewBtn').onclick = () => {
+    const first = pages.find(p => selected.has(p.id));
+    openViewer((first || pages[0]).id);
+  };
+  // Passar páginas deslizando o dedo no celular
+  let swipeX = null;
+  $('#vwStage').addEventListener('touchstart', e => { swipeX = e.touches[0].clientX; }, { passive: true });
+  $('#vwStage').addEventListener('touchend', e => {
+    if (swipeX == null) return;
+    const dx = e.changedTouches[0].clientX - swipeX;
+    swipeX = null;
+    if (Math.abs(dx) > 50) vwStep(dx < 0 ? 1 : -1);
+  });
+
+  // ---------- App instalável ----------
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('sw.js').catch(e => console.warn('Service worker não registrado', e));
+  }
+  let installPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    installPrompt = e;
+    $('#installBtn').hidden = false;
+  });
+  $('#installBtn').onclick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    $('#installBtn').hidden = true;
+  };
+  window.addEventListener('appinstalled', () => {
+    $('#installBtn').hidden = true;
+    toast('Pastinha instalada! Ela abre pelo ícone, mesmo sem internet.', 'ok');
+  });
+  // Arquivos abertos pelo Windows ("Abrir com › Pastinha") com o app instalado
+  if ('launchQueue' in window) {
+    window.launchQueue.setConsumer(async params => {
+      if (!params.files || !params.files.length) return;
+      addFiles(await Promise.all(params.files.map(h => h.getFile())));
+    });
+  }
 
   render();
 })();

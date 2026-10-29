@@ -1,0 +1,15 @@
+{
+  "name": "pastinha",
+  "private": true,
+  "description": "Monte dossiês juntando PDFs e fotos, direto no navegador",
+  "scripts": {
+    "start": "node tests/serve.mjs",
+    "test": "playwright test",
+    "test:stress": "playwright test --project=stress"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "jszip": "3.10.1",
+    "pdf-lib": "1.17.1"
+  }
+}
