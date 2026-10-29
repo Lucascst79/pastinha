@@ -54,12 +54,12 @@ Os testes usam navegadores de verdade (Chrome, Edge, Firefox, Safari/WebKit e ce
 ```bash
 npm install
 npx playwright install
-npm test               # todos os testes
+npm test               # todos os testes (na cópia local)
 npm run test:stress    # dossiê grande: 60 fotos de 12 MP
 npm start              # abre a Pastinha em http://localhost:4173
 ```
 
-Os testes também rodam sozinhos no GitHub a cada alteração (aba **Actions**).
+Para testar o site já publicado: `BASE_URL=https://lucascst79.github.io/pastinha/ npm test`.
 
 ## Observações
 

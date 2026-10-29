@@ -2,6 +2,8 @@
 const { defineConfig, devices } = require('@playwright/test');
 
 const PORT = 4173;
+// BASE_URL=https://lucascst79.github.io/pastinha/ npm test → testa o site publicado
+const BASE_URL = process.env.BASE_URL;
 
 module.exports = defineConfig({
   testDir: './tests',
@@ -12,12 +14,12 @@ module.exports = defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: `http://localhost:${PORT}/`,
+    baseURL: BASE_URL || `http://localhost:${PORT}/`,
     acceptDownloads: true,
     viewport: { width: 1400, height: 820 },
     trace: 'retain-on-failure',
   },
-  webServer: {
+  webServer: BASE_URL ? undefined : {
     command: `node tests/serve.mjs ${PORT}`,
     url: `http://localhost:${PORT}/`,
     reuseExistingServer: !process.env.CI,
