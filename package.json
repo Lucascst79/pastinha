@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node tests/serve.mjs",
     "test": "playwright test",
-    "test:stress": "playwright test --project=stress"
+    "test:stress": "playwright test -c playwright.stress.config.js"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

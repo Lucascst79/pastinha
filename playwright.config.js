@@ -31,7 +31,5 @@ module.exports = defineConfig({
     { name: 'celular', use: { ...devices['Pixel 7'] }, testIgnore: /stress/ },
     // Edge de verdade, quando instalado (no Windows ele já vem)
     ...(process.env.CI ? [] : [{ name: 'edge', use: { ...devices['Desktop Edge'], channel: 'msedge', viewport: { width: 1400, height: 820 } }, testIgnore: /stress/ }]),
-    // Dossiê grande: roda só quando pedido (npm run test:stress)
-    { name: 'stress', use: { ...devices['Desktop Chrome'] }, testMatch: /stress/, timeout: 600_000 },
   ],
 });
