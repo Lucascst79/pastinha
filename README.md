@@ -61,6 +61,8 @@ npm start              # abre a Pastinha em http://localhost:4173
 
 Para testar o site já publicado: `BASE_URL=https://lucascst79.github.io/pastinha/ npm test`.
 
+Os testes também rodam sozinhos no GitHub a cada alteração (aba **Actions**), em Chrome, Firefox, Safari/WebKit e celular.
+
 ## Observações
 
 - O site não aparece em buscadores (marcado como `noindex`).
